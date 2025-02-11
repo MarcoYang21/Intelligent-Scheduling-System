@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>排程管理系統 - 週視圖</title>
+  <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+  <link href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    .container {
+      width: 95%;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #4a90e2;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .controls button:hover {
+      background-color: #357abd;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background-color: #fff;
+    }
+    table th, table td {
+      border: 1px solid #dee2e6;
+      padding: 12px;
+      text-align: left;
+    }
+    table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #495057;
+    }
+    table tr:hover {
+      background-color: #f5f5f5;
+    }
+    .status {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-completed {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .status-in-progress {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    .status-pending {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    #gantt_here {
+      margin-top: 30px;
+      height: 400px;
+      width: 100%;
+    }
+    .weekend {
+      background: #f4f7f4;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>排程管理系統</h1>
+    
+    <div class="controls">
+      <button onclick="exportToExcel()">匯出 Excel</button>
+      <button onclick="printSchedule()">列印排程表</button>
+      <button onclick="zoomIn()">放大</button>
+      <button onclick="zoomOut()">縮小</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>專案名稱</th>
+          <th>測試項目</th>
+          <th>開始日期</th>
+          <th>結束日期</th>
+          <th>負責人員</th>
+          <th>狀態</th>
+          <th>完成度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SCCU</td>
+          <td>OP Cycle -40-85</td>
+          <td>W1-W8</td>
+          <td>2025/03/01</td>
+          <td>QA Team</td>
+          <td><span class="status status-completed">已完成</span></td>
+          <td>100%</td>
+        </tr>
+        <tr>
+          <td>SCCU</td>
+          <td>High Temp 90</td>
+          <td>W9-W13</td>
+          <td>2025/04/05</td>
+          <td>QA Team</td>
+          <td><span class="status status-in-progress">進行中</span></td>
+          <td>50%</td>
+        </tr>
+        <tr>
+          <td>SCCU</td>
+          <td>Chamber Test</td>
+          <td>W14-W18</td>
+          <td>2025/05/15</td>
+          <td>QA Team</td>
+          <td><span class="status status-pending">待執行</span></td>
+          <td>0%</td>
+        </tr>
+        <tr>
+          <td>SCCU</td>
+          <td>Reliability Test</td>
+          <td>W19-W24</td>
+          <td>2025/06/30</td>
+          <td>QA Team</td>
+          <td><span class="status status-pending">待執行</span></td>
+          <td>0%</td>
+        </tr>
+        <tr>
+          <td>SCCU</td>
+          <td>Final Verification</td>
+          <td>W25-W27</td>
+          <td>2025/07/15</td>
+          <td>QA Team</td>
+          <td><span class="status status-pending">待執行</span></td>
+          <td>0%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div id="gantt_here"></div>
+  </div>
+
+  <script>
+    gantt.config.date_format = "%Y-%m-%d";
+    gantt.config.scale_height = 50;
+    gantt.config.row_height = 30;
+    gantt.config.min_column_width = 40;
+
+    // 簡化的時間尺度設定
+    gantt.config.scales = [
+      {unit: "month", step: 1, format: "%Y-%m"},
+      {unit: "week", step: 1, format: "%W"}  // 只顯示週數
+    ];
+
+    gantt.config.columns = [
+      {name: "text", label: "測試項目", tree: true, width: 200},
+      {name: "start_date", label: "開始日期", align: "center", width: 100},
+      {name: "duration", label: "工期(週)", align: "center", width: 80,
+        template: function(task) {
+          return Math.ceil(task.duration / 7);
+        }
+      }
+    ];
+
+    gantt.init("gantt_here");
+
+    var tasks = {
+      data: [
+        {
+          id: 1,
+          text: "OP Cycle -40-85",
+          start_date: "2025-01-01",
+          duration: 56,
+          progress: 1
+        },
+        {
+          id: 2,
+          text: "High Temp 90",
+          start_date: "2025-03-02",
+          duration: 35,
+          progress: 0.5
+        },
+        {
+          id: 3,
+          text: "Chamber Test",
+          start_date: "2025-04-06",
+          duration: 42,
+          progress: 0
+        },
+        {
+          id: 4,
+          text: "Reliability Test",
+          start_date: "2025-05-16",
+          duration: 49,
+          progress: 0
+        },
+        {
+          id: 5,
+          text: "Final Verification",
+          start_date: "2025-07-01",
+          duration: 14,
+          progress: 0
+        }
+      ],
+      links: [
+        {id: 1, source: 1, target: 2, type: "0"},
+        {id: 2, source: 2, target: 3, type: "0"},
+        {id: 3, source: 3, target: 4, type: "0"},
+        {id: 4, source: 4, target: 5, type: "0"}
+      ]
+    };
+
+    gantt.parse(tasks);
+
+    var scaleConfig = {
+      min_column_width: 40,
+      step: 1,
+      scales: [
+        {unit: "month", step: 1, format: "%Y-%m"},
+        {unit: "week", step: 1, format: "%W"}
+      ]
+    };
+
+    function zoomIn() {
+      scaleConfig.min_column_width = Math.min(scaleConfig.min_column_width + 10, 100);
+      applyConfig();
+    }
+
+    function zoomOut() {
+      scaleConfig.min_column_width = Math.max(scaleConfig.min_column_width - 10, 30);
+      applyConfig();
+    }
+
+    function applyConfig() {
+      gantt.config.min_column_width = scaleConfig.min_column_width;
+      gantt.config.scales = scaleConfig.scales;
+      gantt.render();
+    }
+
+    function exportToExcel() {
+      alert('匯出 Excel 功能將在此實作');
+    }
+
+    function printSchedule() {
+      window.print();
+    }
+  </script>
+</body>
+</html>
