@@ -1,6 +1,3 @@
-
-2. **docs/03-modules/01-initialization.md**
-```markdown
 # 系統初始化模組
 
 ## 功能概述
